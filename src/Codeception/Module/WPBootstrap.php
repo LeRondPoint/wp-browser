@@ -33,8 +33,23 @@ class WPBootstrap extends Module
      *
      * @var array
      */
-    protected $requiredFields = array('wpRootFolder',);
+    protected $requiredFields = array('wpRootFolder', 'domain',);
     
+    /**
+     * The fields the user will be able to override while running tests.
+     *
+     * All of the fields have a correspondant in the standard `wp-tests-config.php`
+     * file found in [WordPress automated testing suite.](http://make.wordpress.org/core/handbook/automated-testing/)
+     *
+     * multisite - bool, def. `false`, if set to `true` will create a
+     * multisite installation, the WP_TESTS_MULTISITE global value.
+     *
+     * @var array
+     */
+    protected $config = array(
+        'multisite' => false,
+    );
+        
     /**
      * The path to the modified tests bootstrap file.
      *
@@ -66,6 +81,11 @@ class WPBootstrap extends Module
         $this->ensureWPRoot($this->getWpRootFolder());
 
         $this->wpBootstrapFile = $this->wpRootFolder . '/wp-load.php';
+        
+        $this->setupConfig();
+        
+        $this->setupMultisite();
+        
         $this->loadWordPress();
         
         $this->setupTestEnvironment();
@@ -107,9 +127,49 @@ class WPBootstrap extends Module
      */
     protected function loadWordPress()
     {
+        global $wpdb, $current_site, $current_blog, $wp_rewrite, $shortcode_tags, $wp, $phpmailer;
+
+        $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+        $_SERVER['HTTP_HOST'] = WP_TESTS_DOMAIN;
+        $_SERVER['SERVER_NAME'] = WP_TESTS_DOMAIN;
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
         require_once dirname(dirname(__DIR__)) . '/includes/functions.php';
 
         require_once $this->wpBootstrapFile;
+    }
+    
+    protected function setupConfig()
+    {
+        // Setup from options
+        $constants = array(
+            'WP_TESTS_MULTISITE' => $this->config['multisite'],
+            'WP_TESTS_DOMAIN' => $this->config['domain'],
+        );
+        
+        foreach ($constants as $key => $value) {
+            if (!defined($key)) {
+                define($key, $value);
+            }
+        }
+    }
+    
+    protected function setupMultisite()
+    {
+        $multisite = defined('WP_TESTS_MULTISITE') && WP_TESTS_MULTISITE;
+
+        if($multisite) {
+            if(!defined('MULTISITE')) {
+                define( 'MULTISITE', true );
+            }
+            if(!defined('SUBDOMAIN_INSTALL')) {
+                define( 'SUBDOMAIN_INSTALL', false );
+            }
+            $GLOBALS['base'] = '/';
+        }
+
+        unset( $multisite );
     }
     
     protected function setupTestEnvironment()
@@ -119,7 +179,7 @@ class WPBootstrap extends Module
         $includeDir = dirname(dirname(__DIR__)) . '/includes';
         
         if ( ! defined( 'WP_TESTS_FORCE_KNOWN_BUGS' ) )
-        	define( 'WP_TESTS_FORCE_KNOWN_BUGS', false );
+            define( 'WP_TESTS_FORCE_KNOWN_BUGS', false );
         
         // Cron tries to make an HTTP request to the blog, which always fails, because tests are run in CLI mode only
         if ( ! defined( 'DISABLE_WP_CRON' ) )
