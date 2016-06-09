@@ -12,12 +12,24 @@ To install simply require the package in the `composer.json` file like
 ```json
   "require-dev":
     {
-      "lucatume/wp-browser": "master@dev"
+      "lucatume/wp-browser": "~1.11"
     }
 ```
     
 and then use `composer update` to fetch the package.  
 After that  follow the configuration instructions below.
+
+## Modules
+While the package name is the same as the first module added to it ("WPBrowser") the package will add more than one module to [Codeception](http://codeception.com/ "Codeception - BDD-style PHP testing.") to ease WordPress testing.  
+Not every module will make sense or work in any suite or type of test case but here's an high level view:
+
+* WPBrowser - a PHP based, JavaScript-less and headless browser for functional testing
+* WPWebDriver - a Guzzle based, JavaScript capable web driver; to be used in conjunction with [a Selenium server](http://www.seleniumhq.org/download/), [PhantomJS](http://phantomjs.org/) or any real web browser for acceptance testing
+* WPDb - an extension of the default codeception [Db module](http://codeception.com/docs/modules/Db) that will interact with a WordPress database to be used in functional testing
+* WPLoader - will load and configure a **blank** WordPress installation to use as a base to set up fixtures and access WordPress defined functions and classes in integration tests; a wrapping of the WordPress [PhpUnit](https://phpunit.de/ "PHPUnit – The PHP Testing Framework") based [test suite provided in the WordPress repository](https://make.wordpress.org/core/handbook/testing/automated-testing/phpunit/).
+* WPBootstrapper - will bootstrap an existing WordPress installation in the same variable scope of the calling function to have access to its methods.
+* WPQueries - allows for assertments to be made on WordPress database access in integration tests.
+* WPRequests - makes request to an existing WordPress installation **in a separate process** and offers an API to access WordPress services in functional tests.
 
 ### WPBrowser configuration
 WPBrowser extends `PHPBrowser` module hence any parameter required and available to that module is required and available in `WPBrowser` as well.  
@@ -92,6 +104,11 @@ and configure `Db` parameters and the additional ones available to the `WPDb` mo
 * `url` - the site home url (required)
 * `tablePrefix` - allows specifying the table prefix used in the installation, defaults to `wp_` (optional)
 
+#### Dump file domain replacement
+The SQL dump file will be loaded by the module during initialization **before** each test following the same limitations about size imposed by [Codeception Db module](http://codeception.com/docs/09-Data#db).  
+The problem with WordPress database dumps is that the website URL address is harcoded in the database itself making dump sharing a serch and replace pain.  
+The module will try to replace the domain written in the loaded SQL dump file on the fly to match the one specified in the `url` config parameter to allow dumps to work locally with no issues.
+
 ### WPLoader configuration
 The module wraps the configuration, installation and loading of a working headless WordPress site for testing purposes.
 An adaptation of [WordPress automated testing suite](http://make.wordpress.org/core/handbook/automated-testing/) the module exposes the suite hard-coded value as configuration parameters.  
@@ -153,6 +170,25 @@ and configure it using the required parameters:
 
 **A word of caution**: right now the only way to write tests able to take advantage of the suite is to use the `WP_UnitTestCase` test case class; while the module will load fine and will raise no problems `WP_UnitTestCase` will take care of handling the database as intended and using another test case class will almost certainly result in an error if the test case defines more than one test method.
 
+### WPBootstrapper configuration
+The module will bootstrap a WordPress installation loading its `wp-load.php` file.   
+The configuration will require one parameter only :
+
+ * `wpRootFolder` - the absolute path to the root folder of the WordPress installation to use for testing, the `ABSPATH` global value.
+
+### WPQueries configuration
+This module requires no configuration.
+
+### WPRequests configuration
+The module will require the absolute path to an existing WordPress installation; the path should point to WordPress root folder, the one containing the `wp-load.php` file.
+
+```yaml
+modules:
+    enabled:
+        WPRequests:
+            wpRootFolder: /var/www/wp
+```
+
 ### wpcept command
 The package will create a link to the `bin/wpcept` script file; that's an extension of Codeception own `codecept` CLI application to allow for a WordPress specific setup.
 
@@ -170,7 +206,7 @@ The command will generate the "Unit", "Wpunit", "Functional" and "Acceptance" su
 * Functional with `Filesystem`, `WPDb`, `WPLoader` and helper modules
 * Acceptance with `WPBrowser`, `WPDb` and helper modules
 
-Please note that defautl Codeception suite bootstrapping is available using the `codecept bootstrap` command.
+Please note that default Codeception suite bootstrapping is available using the `codecept bootstrap` command.
 The "Wpunit" suite is meant to be a middle ground between the simple unit tests of classes that are able to mock any dependency and do not rely on any WordPress defined class, method or function and those that do.
 
 #### bootstrap:pyramid
@@ -181,11 +217,15 @@ The command
   wpcept bootstrap:pyramid
 ```
 
-will generate the "UI", "Service" and "Unit" suites and will take care of setting up default modules and their settings for each like:
+will generate the "UI", "Service", "Wpunit" and "Unit" suites and will take care of setting up default modules and their settings for each like:
 
 * Unit with `Asserts` and `UnitHelper` modules
+* Wpunit with `WPLoader` and helper modules
 * Functional with `Filesystem`, `WPDb`, `WPLoader` and `FunctionalHelper` modules
 * Acceptance with `WPBrowser`, `WPDb` and `AcceptanceHelper` modules
+
+Please note that default Codeception suite bootstrapping is available using the `codecept bootstrap` command.
+The "Wpunit" suite is meant to be a middle ground between the simple unit tests of classes that are able to mock any dependency and do not rely on any WordPress defined class, method or function and those that do.
 
 #### generate:wpunit
 Generates a test case extending the `\Codeception\TestCase\WPTestCase` class using the
@@ -364,6 +404,79 @@ The command has the following arguments
 `vendor` - the path, relative to the project root folder, to the vendor folder, def. `vendor`
 
 Each call to the command will re-generate the `phpunit.xml` and `tests/phpunit-bootstrap.php` files, changes made to the `phpunit` element attributes in the `phpunit.xml` file will be preserved across regenerations.
+
+### Management commands
+The package comes with some commands meant to make the management and sharing of a shared repository easier.
+Some are wrappers around external commands (like `search-replace` and `setup`) or native to the WPBrowser package.  
+All the commands share the `--save-config` option: when used in flag mode any **option** value specified in the command (so **no arguments**) will be saved in a `commands-config.yml` file in the root folder.  
+As an example running:
+
+```bash
+wpcept db:snapshot issue3344 wp-tests --local-url=http://wp-tests.dev --dist-url=http://acme.tests.dev --host=192.54.0.1 --user=db --pass=db --save-config
+```
+
+will generate a  `command-config.yml` file like this:
+
+```yaml
+# tad\Codeception\Command configuration file.
+# Each section should be the name of a supported command
+# This file was auto-generated by the use of the `--save-config` option on one or more commands.
+# But you can modify it by hand with some care.
+db:snapshot:
+    local-url: http://wp-tests.dev
+    dist-url: http://acme.tests.dev
+    host: 192.54.0.1
+    user: db
+    pass: db
+```
+
+that will allow to shorten the next invocation of the command considerably on the next run:
+
+```bash
+wpcept db:snapshot issue44566 wp-tests 
+```
+
+Multiple commands can and will write their own configuration in the `command-config.yml` file.  
+It is possible to override saved configuration values specifying the option in the command:
+
+```bash
+wpcept db:snapshot issue22444 wp-tests --user=root --host=localhost
+```
+
+#### search-replace
+This is merely a shimming of the `search-replace` command defined in [the `lucatume/codeception-setup-local` package](https://github.com/lucatume/codeception-setup-local "lucatume/codeception-setup-local · GitHub"); see package documentation for more information.
+
+#### setup
+This is merely a shimming of the `setup` command defined in [the `lucatume/codeception-setup-local` package](https://github.com/lucatume/codeception-setup-local "lucatume/codeception-setup-local · GitHub"); see package documentation for more information.
+
+#### db:snapshot
+The command allows developers to take a snapshot of a database state to be used to share database-based fixtures in a team.  
+The command takes the following arguments and options:
+
+* `snapshot` - the first argument is the name of the snapshot to be taken; e.g. `issue4455` or `ticket-ab-f00-34`; required
+* `name` - the second argument is the name of the database that should be exported; e.g. `wp` or `test-db`; required
+* `--host` - this options allows defining the database host; defaults to `localhost`; optional
+* `--user` - this options allows defining the database user; defaults to `root`; optional
+* `--pass` - this options allows defining the database password; defaults to `root`; optional
+* `--dump-file` - this options allows defining the destination file for the database dump (an absolute path); defaults to `<snapshot>.sql` in Codeception data folder; optional
+* `--dist-dump-file` - this options allows defining the destination file for the distribution database dump (an absolute path); defaults to `<snapshot>.dist.sql` in Codeception data folder; optional
+* `--skip-tables` - this options allows defining any table that shuould not be dumped (a comma separated list); e.g. `wp_posts,wp_users`; defaults to none; optional
+* `--local-url` - this options allows defining the local setup url that is hardcoded in the local version of the database by WordPress; e.g. `http://wp.dev`; defaults to `http://local.dev`; optional but probably needed
+* `--dist-url` - this options allows defining the distribution setup url that will be hardcoded in the distribution version of the database dump; e.g. `http://wptest.dev`; defaults to `http://dist.dev`; optional but probably needed
+
+A typical flow using the command would be:
+
+* a developer sets up a local version of a starting database state for a test or a series of tests
+* the developer creates a local (to be used in local tests) and distribution (to be shared with other team members) dump of his/her local database using:
+
+  ```bash
+  wpcept db:snapshot issue3344 wp-tests --local-url=http://wp-tests.dev --dist-url=http://acme.tests.dev
+  ```
+* any other developer on the team can use the `search-replace` command to localize the distribution version of the database dump to suite his/her setup:
+  
+  ```bash
+  wpcept search-replace http://acme.tests.dev http://local.dev ./tests/_data/issue3344.dist.sql ./tests/_data/issue3344.sql
+  ```
 
 ### ExtendedDb configuration
 The module has the same configuration as the `Db` one and hence will not require any additional parameter beside those required/available to the `Db` module.
@@ -614,3 +727,202 @@ The module is an extension of the `Codeception\Module\Db` class implementing som
 
   public function haveOrUpdateInDatabase($table, array $data)
 ```
+
+### WPBootstrapper
+The module adds some *sugar* methods, beside allowing for the call of any WordPress defined function or class method, to speed up teh writing of test methods:
+
+* `setPermalinkStructureAndFlush($permalinkStructure = '/%postname%/', $hardFlush = true)` - sets the permalink structure to the specified value and flushes the rewrite rules.
+* `loadWpComponent($component)` - includes the file(s) required to access some functions and classes WordPress would not load by default in a bootstrap; currently supported
+  * `plugins` - includes the `wp-admin/includes/plugin.php` file to access functions like `activate_plugin` and `deactivate_plugins`.
+
+### WPQueries
+The module assertion methods can be accessed including it in the suite configuration file.  
+When writing tests the module can be accessed using the `getModule` method.  
+In any test case class extending the base `Codeception\TestCase\Test` class the module can be accessed like this:
+
+```php
+class QueriesTest extends Codeception\TestCase\Test{
+
+  public function test_insertion_queries(){
+    wp_insert_post(['post_type' => 'page', 'post_title' => 'Some title']);
+
+    $queries = $this->getModule('WPQueries');
+    $queries->assertQueries();
+  }
+
+}
+```
+
+In `cept` or `cest` format tests the module can be accessed in a similar way:
+
+```php
+$I = new FunctionalTester($scenario);
+$I->amOnPage('/');
+$I->click('Create random post');
+
+$queries = $I->getModule('WPQueries');
+
+$queries->assertQueries();
+```
+
+The module defines the following assertion methods, see code doc blocks documentation for the details:
+
+* assertQueries
+* assertNotQueries
+* assertCountQueries 
+* assertQueriesByStatement
+* assertQueriesByMethod
+* assertNotQueriesByStatement
+* assertQueriesCountByStatement
+* assertNotQueriesByMethod
+* assertQueriesCountByMethod
+* assertQueriesByFunction
+* assertNotQueriesByFunction
+* assertQueriesCountByFunction
+* assertQueriesByStatementAndMethod
+* assertNotQueriesByStatementAndMethod
+* assertQueriesCountByStatementAndMethod
+* assertQueriesByStatementAndFunction
+* assertNotQueriesByStatementAndFunction
+* assertQueriesCountByStatementAndFunction
+* assertQueriesByAction
+* assertNotQueriesByAction
+* assertQueriesCountByAction
+* assertQueriesByStatementAndAction
+* assertNotQueriesByStatementAndAction
+* assertQueriesCountByStatementAndAction
+* assertQueriesByFilter
+* assertNotQueriesByFilter
+* assertQueriesCountByFilter
+* assertQueriesByStatementAndFilter
+* assertNotQueriesByStatementAndFilter
+* assertQueriesCountByStatementAndFilter
+
+**Note**: when used in a `WPTestCase` exending class the assertion methods will exclude queries made during `WPTestCase::setUp`, `WPTestCase::tearDown` and factory methods!  
+This means that the `test_queries` test method below will fail as no queries have been made by methods or that are not part of `setUp`, `tearDown` or factories:
+
+```php
+class QueriesTest extends Codeception\TestCase\WPTestCase {
+  public fuction test_queries(){
+    
+    $this->factory()->posts->create();
+
+    // this will fail!
+    $this->assertQueries();
+  }
+}
+```
+
+### WPRequests module
+This module is meant to be used in functional tests to access those services WordPress is not exposing in independent modules.  
+The current implementation of the module offers just one methods:
+
+* `public string createNonce(string $action, array $credentials )` to generate a nonce for the specified action and user; the `$credentials` array is usually the output of the `loginAs` or `loginAsAdmin` methods defined by the `WPBrowser` or `WPWebDriver` modules.
+
+```php
+class RestPostInsertionCest
+{
+    public function test_post_insertion(FunctionalTester $I)
+    {
+        $I->sendPOST('/create-post',[
+            'nonce' => $I->createNonce('wp_rest', $I->loginAsAdmin()),
+            'title' => 'Some title',
+            'content'  => 'Some content'
+        ]);
+        
+        $I->seePostInDatabase(['post_title' => 'Some title', 'post_content' => 'Some content']);
+    }
+}
+```
+
+**Note**: the module will bootstrap the WordPress installation for each request! Calling the `createNonce` method 5 times will bootstrap WordPress 5 times with a huge impact on test timings; taking this into account try to cache re-usable results when possible.  
+
+## Extensions
+The package contains an additional extension to facilitate testers' life.
+
+### Symlinker
+The `tad\WPBrowser\Extension\Symlinker` extension provides an automation to have the Codeception root directory symbolically linked in a WordPress local installation.  
+Since version `3.9` WordPress supports this feature (with some [precautions](https://make.wordpress.org/core/2014/04/14/symlinked-plugins-in-wordpress-3-9/https://make.wordpress.org/core/2014/04/14/symlinked-plugins-in-wordpress-3-9/)) and the extension takes charge of:
+
+* symbolically linking a plugin or theme folder in the specified destination before any suite boots up
+* unlinking that symbolic link after all of the suites did run
+
+It's the equivalent of doing something like this from the command line (on a Mac):
+
+```bash
+ln -s /my/central/plugin/folder/my-plugin /my/local/wordpress/installation/wp-content/plugins/my-plugin
+/my/central/plugin/folder/my-plugin/vendor/bin/codecept run
+rm -rf /my/local/wordpress/installation/wp-content/plugins/my-plugin
+
+```
+
+The extension needs small configuration in the `codeception.yml` file:
+
+```yaml
+extensions:
+    enabled:
+        - tad\WPBrowser\Extension\Symlinker
+    config:
+        tad\WPBrowser\Extension\Symlinker:
+            mode: plugin
+            destination: /my/local/wordpress/installation/wp-content/plugins
+```
+
+The arguments are:
+
+* `mode` - can be `plugin` or `theme` and indicates whether the current Codeception root folder being symlinked is a plugin or a theme one
+* `destination` - the absolute path to the WordPress local installation plugins or themes folder; to take the neverending variety of possible setups into account the extension will make no checks on the nature of the destination: could be any folder.
+
+#### Environments support
+Being able to symlink a plugin or theme folder into a WordPress installation for testing purposes could make sense when trying to test, as an example, a plugin in a single site and in multi site environment.  
+Codeception [supports environments](http://codeception.com/docs/07-AdvancedUsage#Environmentshttp://codeception.com/docs/07-AdvancedUsage#Environments) and the extension does as well specifyin a destination for each.  
+As an example the `acceptance.suite.yml` file might be configured to support `single` and `multisite` environments:
+
+```yaml
+env:
+    single:
+        modules:
+            config:
+                WPBrowser:
+                    url: 'http://wp.dev'
+                WPDb:
+                    dsn: 'mysql:host=127.0.0.1;dbname=wp'
+    multisite:
+        modules:
+            config:
+                WPBrowser:
+                    url: 'http://mu.dev'
+                WPDb:
+                    dsn: 'mysql:host=127.0.0.1;dbname=mu'
+```
+In the `codeception.yml` file specifying a `destination` for each supported environment will tell the extension to symbolically link the plugin or theme file to different locations according to the current environment:
+```yaml
+extensions:
+    enabled:
+        - tad\WPBrowser\Extension\Symlinker
+    config:
+        tad\WPBrowser\Extension\Symlinker:
+            mode: plugin
+            destination:
+                single: /var/www/wp/wp-content/plugins
+                multisite: /var/www/mu/wp-content/plugins
+```
+If no destination is specified for the current environment the extension will fallback to the first specified one.  
+A `default` destination can be specified to override this behaviour.
+```yaml
+extensions:
+    enabled:
+        - tad\WPBrowser\Extension\Symlinker
+    config:
+        tad\WPBrowser\Extension\Symlinker:
+            mode: plugin
+            destination:
+                default: /var/www/default/wp-content/plugins
+                single: /var/www/wp/wp-content/plugins
+                multisite: /var/www/mu/wp-content/plugins
+```
+When running a suite specifying more than one environment like
+```bash
+codecept run acceptance --env foo,baz,multisite
+```
+Then the extension will use the first matched one, in the case above the `multisite` destination will be used.

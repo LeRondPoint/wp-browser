@@ -7,8 +7,7 @@ if (!class_exists('WP_UnitTest_Factory')) {
 if (!class_exists('TracTickets')) {
 	require_once dirname(dirname(dirname(__FILE__))) . '/includes/trac.php';
 }
-
-class WPTestCase extends \Codeception\TestCase\Test {
+class WPTestCase extends \Codeception\Test\Unit {
 
 	protected static $forced_tickets = array();
 	protected static $hooks_saved = array();
@@ -762,5 +761,14 @@ class WPTestCase extends \Codeception\TestCase\Test {
 	{
 		$time_array = explode(' ', $microtime);
 		return array_sum($time_array);
+	}
+
+	/**
+	 * Returns the WPQueries module instance.
+	 * 
+	 * @return \Codeception\Module\WPQueries
+	 */
+	public function queries(){
+		return $this->getModule('WPQueries');
 	}
 }

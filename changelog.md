@@ -3,8 +3,116 @@ All notable changes after version 1.6.16 to this project will be documented in t
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ##[unreleased] Unreleased
+### Changed
+- the `WPDb` module will try to replace the existing dump file domain with the one specified in the configuration during initialization
 
-##[1.9.4] 2016-01-20
+##[1.14.0] 2016-06-09
+### Added
+- the `WPRequests` module
+
+### Changed
+- renamed the `wpunit` suite to `integration` to stick with proper TDD terms (thanks @davert)
+- updated `wpcept` `bootstrap` and `bootstrap:pyramid` commands to scaffold suites closer in modules to TDD practices
+- `WPBrowser` and `WPWebDriver` `loginAs` and `loginAsAdmin` methods will now return an array of access credentials and cookies to be used in requests
+
+##[1.13.3] 2016-06-07
+### Changed
+- `WPTestCase` now extends `Codeception\Test\Unit` class
+
+##[1.13.2] 2016-06-06
+### Fixed
+- Symlinker extension event hooking
+
+##[1.13.1] 2016-06-06
+### Fixed
+- issue with Symlinker unlinking operation
+
+##[1.13.0] 2016-06-03
+### Changed
+- updated code to follow `codeception/codeception` 2.2 update
+
+##[1.12.0] 2016-06-01
+### Added
+- the `WPQueries` module
+
+##[1.11.0] 2016-05-24
+### Added
+- `lucatume/codeception-setup-local` package requirement
+- `wpcept setup` command shimming (from `lucatume/codeception-setup-local` package)
+- `wpcept setup:scaffold` command shimming (from `lucatume/codeception-setup-local` package)
+- `wpcept search-replace` command shimming (from `lucatume/codeception-setup-local` package)
+- `wpdcept db:snapshot` command
+- `lucatume/wp-browser-commons` package requirement
+
+### Changed
+- moved common code to `lucatume/wp-browser-commons` package
+
+##[1.10.12] 2016-05-09
+### Fixed
+- `wpdb` reconnection procedure in WPBootstrapper module
+
+##[1.10.11] 2016-05-05
+### Added
+- environments based support in `tad\WPBrowser\Extension\Symlinker` extension
+
+##[1.10.10] 2016-05-04
+### Added
+- the `tad\WPBrowser\Extension\Symlinker` extension
+
+### Changed
+- update check deactivation when bootstrapping WordPress using the `WPBootstrapper` module
+- updated core suite PHPUnit test files to latest version
+
+##[1.10.9] 2016-05-03
+### Fixed
+- wrongly merged code from development version (thanks @crebacz for the prompt message!)
+- warnings in `WPDb` module due to hasty use of array manipulation function
+
+### Removed
+- unreliable support for multisite scaffolding from WPDb module
+
+##[1.10.8] 2016-05-02
+### Fixed
+- missing `blogs` table initialization on multisite installation tests with `WPLoader` module
+
+##[1.10.7] 2016-03-30
+### Fixed
+- faulty active plugin option setting
+
+##[1.10.6] 2016-03-30
+### Fixed
+- fixed db driver initialization in `WPDb::_cleanup` method
+
+##[1.10.5] 2016-03-20
+### Fixed
+- plugin activation and deactivation related methods for WPBrowser and WPWebDriver modules (thanks @dimitrismitsis)
+
+##[1.10.4] 2016-02-23
+### Fixed
+- `WPBootstrapper` module `wpdb` connection and re-connection process
+
+##[1.10.3] 2016-02-22
+### Added
+- `WPBrowserMethods::amOnAdminPage` method, applies to WPWebDriver and WPBrowser modules
+- `WPBootstrapper::setPermalinkStructureAndFlush` method 
+- `WPBootstrapper::loadWpComponent` method 
+
+##[1.10.0] 2016-02-18
+### Modified
+- the `WPBrowser` and `WpWebDriver` `activatePlugin` to use DOM in place of strings (l10n friendly)
+- the `WPBrowser` and `WpWebDriver` `deactivatePlugin` to use DOM in place of strings (l10n friendly)
+
+### Added
+- the WPBootstrapper module
+
+##[1.9.5] 2016-02-15
+### Fixed
+- wrong scaffolding structure when using the `wpcept bootstrap:pyramid command`
+
+###Added
+- the `wpunit` test suite to the ones scaffolded by default when using the `bootstrap:pyramid` command
+
+##[1.9.4] 2016-01-20 
 ### Fixed
 - proper name of `WPAjaxTestCase` class
 
@@ -275,7 +383,26 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Reference to ModuleConfigException class in WPLoader class.
 
-[unreleased]: https://github.com/lucatume/wp-browser/compare/1.9.4...HEAD
+[unreleased]: https://github.com/lucatume/wp-browser/compare/1.14.0...HEAD
+[1.14.0]: https://github.com/lucatume/wp-browser/compare/1.13.3...1.14.0
+[1.13.3]: https://github.com/lucatume/wp-browser/compare/1.13.2...1.13.3
+[1.13.2]: https://github.com/lucatume/wp-browser/compare/1.13.1...1.13.2
+[1.13.1]: https://github.com/lucatume/wp-browser/compare/1.13.0...1.13.1
+[1.13.0]: https://github.com/lucatume/wp-browser/compare/1.12.0...1.13.0
+[1.12.0]: https://github.com/lucatume/wp-browser/compare/1.11.0...1.12.0
+[1.11.0]: https://github.com/lucatume/wp-browser/compare/1.10.12...1.11.0
+[1.10.12]: https://github.com/lucatume/wp-browser/compare/1.10.11...1.10.12
+[1.10.11]: https://github.com/lucatume/wp-browser/compare/1.10.10...1.10.11
+[1.10.10]: https://github.com/lucatume/wp-browser/compare/1.10.9...1.10.10
+[1.10.9]: https://github.com/lucatume/wp-browser/compare/1.10.8...1.10.9
+[1.10.8]: https://github.com/lucatume/wp-browser/compare/1.10.7...1.10.8
+[1.10.7]: https://github.com/lucatume/wp-browser/compare/1.10.6...1.10.7
+[1.10.6]: https://github.com/lucatume/wp-browser/compare/1.10.5...1.10.6
+[1.10.5]: https://github.com/lucatume/wp-browser/compare/1.10.4...1.10.5
+[1.10.4]: https://github.com/lucatume/wp-browser/compare/1.10.3...1.10.4
+[1.10.3]: https://github.com/lucatume/wp-browser/compare/1.10.0...1.10.3
+[1.10.0]: https://github.com/lucatume/wp-browser/compare/1.9.5...1.10.0
+[1.9.5]: https://github.com/lucatume/wp-browser/compare/1.9.4...1.9.5
 [1.9.4]: https://github.com/lucatume/wp-browser/compare/1.9.3...1.9.4
 [1.9.3]: https://github.com/lucatume/wp-browser/compare/1.9.2...1.9.3
 [1.9.2]: https://github.com/lucatume/wp-browser/compare/1.9.1...1.9.2
