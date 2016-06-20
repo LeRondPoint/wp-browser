@@ -9,32 +9,50 @@ if (file_exists(__DIR__.'/vendor/autoload.php')) {
 }
 
 // function not autoloaded in PHP, thus its a good place for them
-function codecept_debug($data)
+if (!function_exists ('codecept_debug'))
 {
-    \Codeception\Util\Debug::debug($data);
+    function codecept_debug($data)
+    {
+        \Codeception\Util\Debug::debug($data);
+    }
 }
 
-function codecept_root_dir($appendPath = '')
+if (!function_exists ('codecept_root_dir'))
 {
-    return \Codeception\Configuration::projectDir() . $appendPath;
+    function codecept_root_dir($appendPath = '')
+    {
+        return \Codeception\Configuration::projectDir() . $appendPath;
+    }
 }
 
-function codecept_output_dir($appendPath = '')
+if (!function_exists ('codecept_output_dir'))
 {
-    return \Codeception\Configuration::outputDir() . $appendPath;
+    function codecept_output_dir($appendPath = '')
+    {
+        return \Codeception\Configuration::outputDir() . $appendPath;
+    }
 }
 
-function codecept_log_dir($appendPath = '')
+if (!function_exists ('codecept_log_dir'))
 {
-    return \Codeception\Configuration::outputDir() . $appendPath;
+    function codecept_log_dir($appendPath = '')
+    {
+        return \Codeception\Configuration::outputDir() . $appendPath;
+    }
 }
 
-function codecept_data_dir($appendPath = '')
+if (!function_exists ('codecept_data_dir'))
 {
-    return \Codeception\Configuration::dataDir() . $appendPath;
+    function codecept_data_dir($appendPath = '')
+    {
+        return \Codeception\Configuration::dataDir() . $appendPath;
+    }
 }
 
-function codecept_relative_path($path)
+if (!function_exists ('codecept_relative_path'))
 {
-    return substr($path, strlen(codecept_root_dir()));
+    function codecept_relative_path($path)
+    {
+        return substr($path, strlen(codecept_root_dir()));
+    }
 }
